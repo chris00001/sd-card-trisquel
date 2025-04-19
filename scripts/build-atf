@@ -6,7 +6,9 @@ TUPLE="${2}" # For example "aarch64-linux-gnu"
 
 set -ex
 
-ATF_GIT_URL_DEFAULT="https://github.com/ARM-software/arm-trusted-firmware.git"
+#ATF_GIT_URL_DEFAULT="https://github.com/ARM-software/arm-trusted-firmware.git"
+ATF_GIT_URL_DEFAULT="https://github.com/chris00001/no-blobs-arm-trusted-firmware.git"
+
 
 if [ ! -z "${ATF_GIT_REV}" ]
 then

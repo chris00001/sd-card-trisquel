@@ -1,65 +1,27 @@
 #!/bin/sh
-# Build Debian root filesystem
+# Build Trisquel root filesystem
 
-OS="$1" # For example "debian"
-ARCH="$2" # For example "armhf"
-DIST="$3" # For example "buster"
+OS="$1" # For example "trisquel"
+ARCH="$2" # For example "arm64"
+DIST="$3" # For example "aramo"
 
 set -ex
 
 case "${OS}-${ARCH}" in
-debian-armhf)
-	KERNEL=linux-image-armmp
-	URL=http://deb.debian.org/debian
-	KERNEL_URL=http://packages.debian.org/"${DIST}"/"${KERNEL}"
-	SCRIPT=/usr/share/debootstrap/scripts/sid
-	;;
-debian-arm64)
-	KERNEL=linux-image-arm64
-	URL=http://deb.debian.org/debian
-	KERNEL_URL=http://packages.debian.org/"${DIST}"/"${KERNEL}"
-	SCRIPT=/usr/share/debootstrap/scripts/sid
-	;;
-debian-i386)
-	KERNEL=linux-image-686
-	URL=http://deb.debian.org/debian
-	KERNEL_URL=http://packages.debian.org/"${DIST}"/"${KERNEL}"
-	SCRIPT=/usr/share/debootstrap/scripts/sid
-	;;
-debian-amd64)
-	KERNEL=linux-image-amd64
-	URL=http://deb.debian.org/debian
-	KERNEL_URL=http://packages.debian.org/"${DIST}"/"${KERNEL}"
-	SCRIPT=/usr/share/debootstrap/scripts/sid
-	;;
-ubuntu-amd64)
-	KERNEL=linux-image-generic
-	URL=http://archive.ubuntu.com/ubuntu
-	KERNEL_URL=http://packages.ubuntu.com/"${DIST}"/"${KERNEL}"
-	SCRIPT=/usr/share/debootstrap/scripts/gutsy
-	;;
-ubuntu-armhf|ubuntu-arm64)
-	KERNEL=linux-image-generic
-	URL=http://ports.ubuntu.com/ubuntu-ports
-	KERNEL_URL=http://packages.ubuntu.com/"${DIST}"/"${KERNEL}"
-	SCRIPT=/usr/share/debootstrap/scripts/gutsy
-	;;
+trisquel-arm64)
+        KERNEL=linux-image-generic
+        URL=http://ports.trisquel.info/trisquel
+        KERNEL_URL=http://packages.trisquel.info/"${DIST}"/"${KERNEL}"
+        SCRIPT=/usr/share/debootstrap/scripts/aramo
+        ;;
 *)
 	echo "Can't decide kernel package for \"${ARCH}\""
 	exit 1
 	;;
 esac
 
-case "${OS}-${ARCH}-${DIST}" in
-debian-*-rc-buggy|debian-*-experimental)
-	TARGET=sid
-	KERNELSUITE="-t experimental"
-	;;
-*)
-	TARGET="${DIST}"
-	KERNELSUITE=""
-	;;
-esac
+TARGET="${DIST}"
+KERNELSUITE=""
 
 # Create fresh empty directory
 TMP=$(mktemp -d -p "${PWD}" tmp-XXXXXX)
@@ -90,64 +52,18 @@ PASSWORD="${PASSWORD_OVERRIDE:-$(pwgen -B -A 6 1)}"
 
 # Write apt sources config
 case "${OS}-${ARCH}-${DIST}" in
-debian-*-rc-buggy|debian-*-experimental)
-	tee debian/tmp/sources.list <<- EOF
-deb http://deb.debian.org/debian ${TARGET} main
-deb-src http://deb.debian.org/debian ${TARGET} main
-deb http://deb.debian.org/debian ${DIST} main
-deb-src http://deb.debian.org/debian ${DIST} main
+trisquel-*)
+        tee debian/tmp/sources.list <<- EOF
+deb http://ports.trisquel.info/trisquel ${DIST} main
+deb-src http://ports.trisquel.info/trisquel ${DIST} main
+deb http://ports.trisquel.info/trisquel ${DIST}-updates main
+deb-src http://ports.trisquel.info/trisquel ${DIST}-updates main
+deb http://ports.trisquel.info/trisquel ${DIST}-security main 
+deb-src http://ports.trisquel.info/trisquel ${DIST}-security main 
 EOF
-	;;
-debian-*-sid|debian-*-unstable)
-	tee debian/tmp/sources.list <<- EOF
-deb http://deb.debian.org/debian ${DIST} main
-deb-src http://deb.debian.org/debian ${DIST} main
-EOF
-	;;
-debian-*)
-	tee debian/tmp/sources.list <<- EOF
-deb http://deb.debian.org/debian ${DIST} main
-deb-src http://deb.debian.org/debian ${DIST} main
-deb http://deb.debian.org/debian ${DIST}-updates main
-deb-src http://deb.debian.org/debian ${DIST}-updates main
-deb http://security.debian.org/debian-security ${DIST}-security main
-deb-src http://security.debian.org/debian-security ${DIST}-security main
-EOF
-	;;
-ubuntu-amd64-*)
-	tee debian/tmp/sources.list <<- EOF
-deb http://archive.ubuntu.com/ubuntu ${DIST} main universe
-deb-src http://archive.ubuntu.com/ubuntu ${DIST} main universe
-deb http://archive.ubuntu.com/ubuntu ${DIST}-updates main universe
-deb-src http://archive.ubuntu.com/ubuntu ${DIST}-updates main universe
-deb http://archive.ubuntu.com/ubuntu ${DIST}-security main universe
-deb-src http://archive.ubuntu.com/ubuntu ${DIST}-security main universe
-EOF
-	;;
-ubuntu-*)
-	tee debian/tmp/sources.list <<- EOF
-deb http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe
-deb-src http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe
-deb http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe
-deb-src http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe
-deb http://ports.ubuntu.com/ubuntu-ports ${DIST}-security main universe
-deb-src http://ports.ubuntu.com/ubuntu-ports ${DIST}-security main universe
-EOF
-	;;
+        ;;
 esac
 
-case "${OS}-${ARCH}-${DIST}" in
-debian-*-rc-buggy|debian-*-experimental)
-	# For Debian Experimental, set lower priority to "experimental"
-	tee debian/tmp/priority-experimental <<- EOF
-Package: *
-Pin: release o=Debian,a=experimental
-Pin-Priority: 300
-EOF
-	;;
-*)
-	;;
-esac
 
 cp -rv --preserve=mode ../2nd-stage-files/pre-2nd-stage-files/* debian
 cp -rv --preserve=mode ../2nd-stage-files/pre-2nd-stage-files-${ARCH}/* debian
